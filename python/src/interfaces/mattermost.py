@@ -9,10 +9,11 @@ DRY_RUN = 2
 
 
 class Mattermost:
-    def __init__(self, status, logger):
+    def __init__(self, status, logger, error):
         self.webhook = ""  # 送信先
         self.status = status
         self.logger = logger
+        self.error = error
         try:
             if status == LIVE_SERVER:
                 self.webhook = os.environ.get('LIVE_HOOK_URL')
@@ -22,6 +23,7 @@ class Mattermost:
                 self.webhook = ""
         except KeyError as e:
             self.logger.error(e)
+            self.error.send(str(e))
             exit(1)
 
 

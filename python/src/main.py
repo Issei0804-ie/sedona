@@ -1,6 +1,6 @@
 from logging import getLogger, StreamHandler, DEBUG, Formatter, FileHandler
 import feedparser
-import datetime
+import os
 import db.database as db
 import dotenv
 import sys
@@ -15,10 +15,7 @@ import slackweb
 # endpointの設定
 ENDPOINT = "http://rais.skr.u-ryukyu.ac.jp/dc/?feed=rss2"
 
-# エラーが起きた際にこの webhook にエラー内容を送信する。
-MYADDRESS = ""
-
-ENVIRONMENTFILE = "./../.env"
+ENVIRONMENT_FILE = "./../.env"
 
 ##########
 LIVE_SERVER = 0
@@ -30,13 +27,13 @@ DRY_RUN = 2
 
 
 def main():
-    status, logger = init()
+    status, logger, err = init()
 
     # ENDPOINTにアクセスしrssを取得
     logger.info("Access to endpoint")
     feeds = feedparser.parse(ENDPOINT)
 
-    database = db.DB(logger=logger)
+    database = db.DB(logger=logger, error=err)
     cur = database.conn.cursor()
 
     cur.execute("select * from feeds")
@@ -54,7 +51,7 @@ def main():
             if status != DRY_RUN:  # dry-runの場合は実行しない
                 cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
                 database.conn.commit()
-            mm = mattermost.Mattermost(status, logger=logger)
+            mm = mattermost.Mattermost(status, logger=logger, error=err)
             mm.send(title_in_feed, url_in_feed)
 
     # セッションを切断
@@ -86,11 +83,12 @@ def init():
     logger = init_loger(log_folder="./../sedona.log", modname="debug")
     # loggingの設定
     logger.info("sedona start")
-
+    error = None
     # 引数の処理
     status = DRY_RUN  # とりあえず安全な値を初期値にする
     try:
-        dotenv.load_dotenv(ENVIRONMENTFILE)
+        dotenv.load_dotenv(ENVIRONMENT_FILE)
+        error = Error(logger)
         args = sys.argv
         if args[1] == "live-server":
             logger.info("THIS IS LIVE-SERVER")
@@ -103,27 +101,37 @@ def init():
         else:
             logger.error("Arguments Error")
             logger.error("example python main.py dry-run")
-            error("Arguments Error")
+            error.send("Arguments Error")
             exit(1)
 
     except KeyError as e:
         # .env関係のエラー
         logger.error("Environment variable error")
         logger.error(e)
-        error(e)
+        error.send(e)
         exit(1)
     except IndexError as e:
         # 引数関係のエラー
         logger.error(e)
-        error(e)
+        error.send(e)
         exit(1)
 
-    return status, logger
+    return status, logger, error
 
 
-def error(message):
-    error_chat_room = slackweb.Slack(url=MYADDRESS)
-    error_chat_room.notify(text="From sedona: " + str(message))
+class Error:
+    def __init__(self, logger):
+        try:
+            self.address = os.environ.get('ADDRESS')
+            self.logger = logger
+            pass
+        except KeyError as e:
+            self.logger(e)
+            exit(1)
+
+    def send(self, message):
+        error_chat_room = slackweb.Slack(url=self.address)
+        error_chat_room.notify(text="From sedona: " + str(message))
 
 
 if __name__ == '__main__':
