@@ -2,3 +2,4 @@
 /python/sedona.log
 /python/.env
 /.idea
+__pycache__
