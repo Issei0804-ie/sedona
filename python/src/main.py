@@ -4,6 +4,7 @@ import os
 import db.database as db
 import dotenv
 import sys
+import interfaces.twitter as twitter
 import interfaces.mattermost as mattermost
 import slackweb
 
@@ -53,6 +54,8 @@ def main():
                 database.conn.commit()
             mm = mattermost.Mattermost(status, logger=logger, error=err)
             mm.send(title_in_feed, url_in_feed)
+            tw = twitter.Twitter(status, logger=logger, error=err)
+            tw.send(title=title_in_feed, link=url_in_feed)
 
     # セッションを切断
     cur.close()
@@ -60,10 +63,15 @@ def main():
     logger.info("Successful completion")
 
 
-def init_loger(log_folder, modname=__name__):
+def init_logger(modname=__name__):
+    error_flg = False
+    try:
+        log_folder = os.environ.get('LOG_PATH')
+    except KeyError:
+        log_folder = "./../sedona.log"
+        error_flg = True
     logger = getLogger(modname)
     logger.setLevel(DEBUG)
-
     sh = StreamHandler()
     sh.setLevel(DEBUG)
     formatter = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -75,20 +83,22 @@ def init_loger(log_folder, modname=__name__):
     fh_formatter = Formatter('%(asctime)s - %(filename)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
     fh.setFormatter(fh_formatter)
     logger.addHandler(fh)
+    if error_flg:
+        logger.info("Can not read LOG_PATH. \nPlease check environment variable.")
     return logger
 
 
 # logging の設定と引数の処理を行います。 戻り値にスクリプト実行時の引数と logger を返します。.
 def init():
-    logger = init_loger(log_folder="./../sedona.log", modname="debug")
+    dotenv.load_dotenv(ENVIRONMENT_FILE)
+    logger = init_logger(modname="debug")
     # loggingの設定
     logger.info("sedona start")
-    error = None
+    # errorの設定
+    error = Error(logger)
     # 引数の処理
     status = DRY_RUN  # とりあえず安全な値を初期値にする
     try:
-        dotenv.load_dotenv(ENVIRONMENT_FILE)
-        error = Error(logger)
         args = sys.argv
         if args[1] == "live-server":
             logger.info("THIS IS LIVE-SERVER")
