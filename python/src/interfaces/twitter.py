@@ -37,3 +37,4 @@ class Twitter:
                 self.logger.error(res.status_code)
                 self.error.send(str(res.status_code) + res.reason)
                 exit(1)
+
