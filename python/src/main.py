@@ -47,11 +47,21 @@ def main():
         # タイトル, リンクを取得
         title_in_feed = feeds['entries'][i]['title']
         url_in_feed = feeds['entries'][i]['link']
-        # DB上に存在しなければ
-        if status != DRY_RUN:  # dry-runの場合は実行しない
-            cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
-            database.conn.commit()
-        if not database.if_feed_exist(rows, url_in_feed):
+        # DB上に存在するか
+        exist_flg = database.if_feed_exist(rows, url_in_feed)
+        # タイトルの更新があったか
+        update_flg = database.if_title_update(rows, title_in_feed, url_in_feed)
+        # DBに存在しない or タイトルの更新があった
+        if not exist_flg or update_flg:
+            # dry-runの場合は実行しない
+            if status != DRY_RUN:
+                # 更新処理の場合
+                if update_flg:
+                    cur.execute("UPDATE feeds SET title=(%s) where url=(%s)", (title_in_feed, url_in_feed))
+                # 新規作成処理の場合
+                else:
+                    cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
+                database.conn.commit()
             mm = mattermost.Mattermost(status, logger=logger, error=err)
             mm.send(title_in_feed, url_in_feed)
             tw = twitter.Twitter(status, logger=logger, error=err)
@@ -100,6 +110,12 @@ def init():
     status = DRY_RUN  # とりあえず安全な値を初期値にする
     try:
         args = sys.argv
+        if len(args) != 2:
+            logger.error("Arguments Error")
+            logger.error("Example python main.py dry-run")
+            error.send("Arguments Error")
+            exit(1)
+
         if args[1] == "live-server":
             logger.info("THIS IS LIVE-SERVER")
             status = LIVE_SERVER
@@ -108,11 +124,6 @@ def init():
             status = TEST_SERVER
         elif args[1] == "dry-run":
             logger.info("THIS IS DRY-RUN")
-        else:
-            logger.error("Arguments Error")
-            logger.error("example python main.py dry-run")
-            error.send("Arguments Error")
-            exit(1)
 
     except KeyError as e:
         # .env関係のエラー
@@ -120,12 +131,6 @@ def init():
         logger.error(e)
         error.send(e)
         exit(1)
-    except IndexError as e:
-        # 引数関係のエラー
-        logger.error(e)
-        error.send(e)
-        exit(1)
-
     return status, logger, error
 
 
