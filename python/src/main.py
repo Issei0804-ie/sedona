@@ -48,14 +48,14 @@ def main():
         title_in_feed = feeds['entries'][i]['title']
         url_in_feed = feeds['entries'][i]['link']
         # DB上に存在しなければ
+        if status != DRY_RUN:  # dry-runの場合は実行しない
+            cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
+            database.conn.commit()
         if not database.if_feed_exist(rows, url_in_feed):
-            if status != DRY_RUN:  # dry-runの場合は実行しない
-                cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
             mm = mattermost.Mattermost(status, logger=logger, error=err)
             mm.send(title_in_feed, url_in_feed)
             tw = twitter.Twitter(status, logger=logger, error=err)
             tw.send(title=title_in_feed, link=url_in_feed)
-            database.conn.commit()
 
     # セッションを切断
     cur.close()
