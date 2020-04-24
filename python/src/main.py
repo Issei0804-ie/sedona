@@ -4,10 +4,6 @@ import interfaces.twitter as twitter
 import interfaces.mattermost as mattermost
 import init
 
-#########################
-# cronで回す時は相対パスを絶対パスにしないといけない
-# スクリプトを実行した時のディレクトリからの相対パスであり、この main.py からの相対パスではない。
-#########################
 
 # endpointの設定
 ENDPOINT = "http://rais.skr.u-ryukyu.ac.jp/dc/?feed=rss2"
@@ -64,7 +60,6 @@ def main():
                 tw.send(title=title_in_feed, link=url_in_feed)
             else:
                 logger.info("sync:" + title_in_feed + "\n" + url_in_feed )
-
     # セッションを切断
     cur.close()
     database.conn.close()

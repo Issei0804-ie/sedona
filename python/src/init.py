@@ -15,7 +15,10 @@ ENVIRONMENT_FILE = "./../.env"
 
 # logging の設定と引数の処理を行います。 戻り値にスクリプト実行時の引数と logger を返します。.
 def init():
-    dotenv.load_dotenv(ENVIRONMENT_FILE)
+    # このスクリプトのディレクトリ
+    dir = os.path.dirname(__file__)
+    print(dir + "/" + ENVIRONMENT_FILE)
+    dotenv.load_dotenv(dir + "/" + ENVIRONMENT_FILE)
     logger = init_logger(modname="debug")
     # loggingの設定
     logger.info("sedona start")
@@ -58,7 +61,8 @@ def init_logger(modname=__name__):
     try:
         log_folder = os.environ.get('LOG_PATH')
     except KeyError:
-        log_folder = "./../sedona.log"
+        dir = os.path.dirname(__file__)
+        log_folder = dir + "/" + "./../sedona.log"
         error_flg = True
     logger = getLogger(modname)
     logger.setLevel(DEBUG)
@@ -68,7 +72,7 @@ def init_logger(modname=__name__):
     sh.setFormatter(formatter)
     logger.addHandler(sh)
 
-    # log_folfer がない時の error 処理
+    # log_folder がない時の error 処理
     fh = FileHandler(log_folder)  # fh = file handler
     fh.setLevel(DEBUG)
     fh_formatter = Formatter('%(asctime)s - %(filename)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
