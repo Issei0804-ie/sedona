@@ -12,12 +12,13 @@ import init
 # endpointの設定
 ENDPOINT = "http://rais.skr.u-ryukyu.ac.jp/dc/?feed=rss2"
 
-
-
 ##########
 LIVE_SERVER = 0
 TEST_SERVER = 1
 DRY_RUN = 2
+SYNC = 3
+
+
 ##########
 
 
@@ -56,10 +57,13 @@ def main():
                 else:
                     cur.execute("INSERT INTO feeds VALUES (%s, %s)", (title_in_feed, url_in_feed))
                 database.conn.commit()
-            mm = mattermost.Mattermost(status, logger=logger, error=err)
-            mm.send(title_in_feed, url_in_feed)
-            tw = twitter.Twitter(status, logger=logger, error=err)
-            tw.send(title=title_in_feed, link=url_in_feed)
+            if status != SYNC:
+                mm = mattermost.Mattermost(status, logger=logger, error=err)
+                mm.send(title_in_feed, url_in_feed)
+                tw = twitter.Twitter(status, logger=logger, error=err)
+                tw.send(title=title_in_feed, link=url_in_feed)
+            else:
+                logger.info("sync:" + title_in_feed + "\n" + url_in_feed )
 
     # セッションを切断
     cur.close()

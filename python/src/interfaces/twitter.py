@@ -5,6 +5,7 @@ from requests_oauthlib import OAuth1Session  # OAuthのライブラリの読み�
 LIVE_SERVER = 0
 TEST_SERVER = 1
 DRY_RUN = 2
+SYNC = 3
 ##########
 
 
@@ -29,7 +30,7 @@ class Twitter:
         tweet = title + "\n" + link
         params = {"status": tweet}
         self.logger.info("Tweets: " + title + "\n" + link)
-        if self.status != DRY_RUN:
+        if self.status == LIVE_SERVER or self.status == TEST_SERVER:
             res = self.twitter.post(url=self.endpoint, params=params)
             if res.status_code == 200:  # 正常投稿出来た場合
                 self.logger.info("Success tweet")
@@ -37,4 +38,3 @@ class Twitter:
                 self.logger.error(res.status_code)
                 self.error.send(str(res.status_code) + res.reason)
                 exit(1)
-

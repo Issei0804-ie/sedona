@@ -5,6 +5,7 @@ import os
 LIVE_SERVER = 0
 TEST_SERVER = 1
 DRY_RUN = 2
+SYNC = 3
 ##########
 
 

@@ -8,6 +8,7 @@ import error as myerror
 LIVE_SERVER = 0
 TEST_SERVER = 1
 DRY_RUN = 2
+SYNC = 3
 ##########
 ENVIRONMENT_FILE = "./../.env"
 
@@ -38,6 +39,10 @@ def init():
             status = TEST_SERVER
         elif args[1] == "dry-run":
             logger.info("THIS IS DRY-RUN")
+            status = DRY_RUN
+        elif args[1] == "sync":
+            logger.info("THIS IS SYNC")
+            status = SYNC
 
     except KeyError as e:
         # .env関係のエラー
@@ -63,6 +68,7 @@ def init_logger(modname=__name__):
     sh.setFormatter(formatter)
     logger.addHandler(sh)
 
+    # log_folfer がない時の error 処理
     fh = FileHandler(log_folder)  # fh = file handler
     fh.setLevel(DEBUG)
     fh_formatter = Formatter('%(asctime)s - %(filename)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
