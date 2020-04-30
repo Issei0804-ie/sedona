@@ -15,18 +15,17 @@ class DB:
                 password=os.environ.get('DBPASS'),
                 database=os.environ.get('DBNAME') or ''
             )
+            self.conn.ping(reconnect=True)
         except KeyError as e:
             self.logger.error("Environment variable error")
             self.logger.error(e)
             self.error.send(str(e))
             exit(1)
 
-        except mysql.errors.ProgrammingError as e:
+        except (mysql.errors.ProgrammingError, mysql.errors.DatabaseError) as e:
             self.logger.error(e)
             self.error.send(str(e))
             exit(1)
-
-        self.conn.ping(reconnect=True)
         logger.info("Connect to DB")
 
     def if_feed_exist(self, rows, url_in_feed):
